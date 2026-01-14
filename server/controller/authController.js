@@ -1,7 +1,6 @@
 const User = require("../models/User")
 const bcrypt= require("bcrypt")
 const jwt = require("jsonwebtoken")
-const { MdToken } = require("react-icons/md")
 
 const generateAccessToken=(user)=>{
   return jwt.sign({id:user._id,role:user.role},process.env.ACCESS_SECRET,{expiresIn:"15m"})
@@ -68,12 +67,17 @@ const login = async(req,res)=>{
     const accessToken = generateAccessToken(user)
     const refreshToken = generateRefreshToken(user)
 
+    res.cookie("refreshtoken",refreshToken,{
+      httpOnly:true,
+      secure:process.env.NODE_ENV ==="production",
+      samesite:"strict"
+    })
 
    res.status(200).json({
       success: true,
       message: "Successfully logged in",
-      accessToken,
-      refreshToken
+      accessToken
+      
     })  }
 
    
@@ -81,10 +85,10 @@ const login = async(req,res)=>{
          res.status(404).send(err.message)
   }
 }
-const refresh = (req,res)=>{
-    const {refreshToken} = req.body
-    if(!refreshToken) return res.status(401).send("refresh token missing")
-    jwt.verify(refreshToken,process.env.REFRESH_SECRET,(err,decoded)=>{
+const refresh = async(req,res)=>{
+    const Token = req.cookies.refreshToken
+    if(!Token) return res.status(401).send("refresh token missing")
+    await jwt.verify(refreshToken,process.env.REFRESH_SECRET,(err,decoded)=>{
     if(err) return res.status(401).send({error:err.message})
     const newToken = generateAccessToken({
         id:decoded.id,
@@ -93,4 +97,22 @@ const refresh = (req,res)=>{
     return res.json({accessToken:newToken})
     })
   }
-module.exports= {register,login,refresh}
+
+ const logout = async(req,res) =>{
+      try{
+        res.clearCookie("refreshtoken",refreshToken,{
+        httpOnly:true,
+        secure:process.env.NODE_ENV ==="production",
+        samesite:"strict"
+    })
+    res.status(200).json({message: "Logout successfully"})
+      }
+      catch(err){
+      res.status(401).send({error:err.message})
+
+      }
+   
+ } 
+
+
+module.exports= {register,login,refresh,logout}
