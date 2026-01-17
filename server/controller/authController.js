@@ -94,7 +94,7 @@ const refresh = async(req,res)=>{
         id:decoded.id,
         role:decoded.role
     })
-    return res.json({accessToken:newToken})
+    return res.json({accessToken:newToken ,role:decoded.role})
     })
   }
 
